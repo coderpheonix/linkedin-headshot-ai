@@ -24,7 +24,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
         </button>
       </section>
 
-      <section className="py-12">
+      <section className="py-12"> 
         <h3 className="text-3xl font-bold text-brand-gray-900 mb-8">From Casual to Corporate</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
   <div className="overflow-hidden rounded-lg border-4 border-white shadow-lg">
