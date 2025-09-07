@@ -3,7 +3,7 @@ import React from 'react';
 interface HeroProps {
   onStart: () => void;
 }
-
+ 
 const Hero: React.FC<HeroProps> = ({ onStart }) => {
   return (
     <div className="text-center py-16 sm:py-24 px-4">
