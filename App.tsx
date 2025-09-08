@@ -1,20 +1,36 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import UploadStep from './components/UploadStep';
 import ProcessingStep from './components/ProcessingStep';
 import ResultsStep from './components/ResultsStep';
 import Footer from './components/Footer';
-import { AppState, BackgroundStyle } from './types';
-import type { GeneratedImage } from './types';
-import { generateHeadshot } from './services/geminiService';
+
+enum AppState {
+  LANDING = "landing",
+  UPLOADING = "uploading",
+  PROCESSING = "processing",
+  RESULTS = "results"
+}
+
+type GeneratedImage = {
+  id: string;
+  src: string;
+  prompt: string;
+};
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.LANDING);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const fixedImages: GeneratedImage[] = [
+    { id: 'img1', src: 'https://lh3.googleusercontent.com/CFD8jo5r9xhx8fioKrhS3cVyeZ0hAUf4FEpaMQ6elYzDnRmB6hg87qT2Y-ajE3JAppXkJolqPZeTrNvx41reG4AREAJ5lEltoi-KCaqJ9B-ANhkVqmA4XEXwrKZz-w_cK5U_p33qaVU=w1280', prompt: 'Image 1' },
+    { id: 'img2', src: 'https://lh5.googleusercontent.com/4t2aRDG8n4pKX5h3txhy8oSYtsrDLJGIzS9j7Pl9Ftkz4ooFTdxiM4GlStzaC4hDCC_78STcOMRHPjlDCGjX5-gpL3dPiood4qqHcF15LoD0C4tm_p1kMb-Jm1RSa560TCalbHLhMXU=w1280', prompt: 'Image 2' },
+    { id: 'img3', src: 'https://lh3.googleusercontent.com/yNq1yq7NxNdluTItAj6euSU6ko5TxcaLBEdflDguw2seSaxfKvHe9e7F7VeHJtG_lnNd60y46pKoa63ZSSa6Lj9K9e5cIQ4niid4iorsfEW_PfpYL2ZaWMYNbLkX2ea-2JvtMq2ffAM=w1280', prompt: 'Image 3' },
+    { id: 'img4', src: 'https://lh6.googleusercontent.com/Ws7Iz1UHYQzQ7lf5MS1ed-ro6IVsA4Vqz9jCxDkOMVCRntiWP9-_7HpfDL6ucbeiPzSGUcU4hOPHk69uikvPCpPXFEF4Lvpk9SXZ5BHaumMhm9YCD9wTeu77xkXC0uBJ5KP8vuoj0OA=w1280', prompt: 'Image 4' },
+  ];
 
   const handleStart = () => {
     setError(null);
@@ -24,6 +40,20 @@ const App: React.FC = () => {
   const handleFilesSubmit = (files: File[]) => {
     setUploadedFiles(files);
     setAppState(AppState.PROCESSING);
+
+    // যদি user upload করে, সেটাকে use করো; নাহলে fixed images
+    const imagesToShow: GeneratedImage[] = files.length
+      ? files.map((file, idx) => ({
+          id: `user-${idx}`,
+          src: URL.createObjectURL(file),
+          prompt: `User Image ${idx + 1}`
+        }))
+      : fixedImages;
+
+    setTimeout(() => {
+      setGeneratedImages(imagesToShow);
+      setAppState(AppState.RESULTS);
+    }, 500); // simulate processing
   };
 
   const handleReset = useCallback(() => {
@@ -32,54 +62,6 @@ const App: React.FC = () => {
     setGeneratedImages([]);
     setError(null);
   }, []);
-
-  const runGeneration = useCallback(async () => {
-    if (uploadedFiles.length < 3) return;
-    setError(null);
-
-    const baseImage = uploadedFiles[0]; // Use the first image as the primary base
-
-    const generationTasks = [
-      { style: BackgroundStyle.OFFICE, outfit: "a dark navy business suit" },
-      { style: BackgroundStyle.GRADIENT, outfit: "a charcoal grey blazer" },
-      { style: BackgroundStyle.NEUTRAL, outfit: "a professional light-colored business shirt" },
-    ];
-    
-    try {
-      const results = await Promise.all(
-        generationTasks.map(task => 
-          generateHeadshot(baseImage, task.style, task.outfit)
-        )
-      );
-
-      const successfulResults = results.filter(r => r !== null) as string[];
-
-      if (successfulResults.length === 0) {
-        throw new Error("The AI was unable to generate headshots. Please try with different, clearer photos.");
-      }
-
-      setGeneratedImages(successfulResults.map((src, index) => ({
-        id: `img-${index}-${Date.now()}`,
-        src,
-        prompt: `Background: ${generationTasks[index].style}, Outfit: ${generationTasks[index].outfit}`
-      })));
-
-      setAppState(AppState.RESULTS);
-
-    } catch (err) {
-      console.error(err);
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred during generation.";
-      setError(errorMessage);
-      setAppState(AppState.UPLOADING); 
-    }
-  }, [uploadedFiles]);
-
-  useEffect(() => {
-    if (appState === AppState.PROCESSING) {
-      runGeneration();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appState]);
 
   const renderContent = () => {
     switch (appState) {
